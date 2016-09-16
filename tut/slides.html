@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+      body { font-family: 'Droid Serif', 'Helvetica'; }
+      h1, h2, h3 {
+      font-family: 'Yanone Kaffeesatz', 'Gill Sans';
+      font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono', 'Consolas', 'Courier New'; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+      # Adder
+
+      imagine we had written a function to add a list of Ints together, it would look a bit like this
+
+      ```tut
+      def addInts(is: List[Int]): Int = {
+        if (is == Nil) 0
+        else is.head + addInts(is.tail)
+      }
+      ```
+
+      what if later we did the same for multiplying Ints?
+
+      ```tut
+      def multiplyInts(is: List[Int]): Int = {
+        if (is == Nil) 1
+        else is.head * addInts(is.tail)
+      }
+      ```
+
+      and then combining a List of Lists?
+
+      ```tut
+      def addList[T](ls: List[List[T]]): List[T] = {
+        if (ls == Nil) List()
+        else ls.head ++ addList(ls.tail)
+      }
+      ```
+
+      These bits of code all look very similar. Can we somehow abstract this idea out?
+
+      # 1st attempt - subclass polymorphism
+
+      Well, we could try and use polymorphism to do this, but where would it live?
+
+      We could try adding this to List
+
+      ```tut
+      trait List[A] {
+        //...
+        def adder(ls: List[A]): A
+        //...
+      }
+      ```
+
+      but then what? How do we implement this? Each type has a different implemention - does that mean we have to implement `adder` on Int?
+
+      That's a crap approach
+
+      - Int shouldn't know about List
+      - Int has 2 different implementations of adder
+      - What if we have a list where `adder` doesn't makes sense? Our approach forces us to implement it anyway
+
+      .. Not to mention, we can't modify List like this anyway
+
+      Lets try something else
+
+      # Type classes
+
+      Lets look at our implementation again
+
+      ```scala
+      def addInts(is: List[Int]): Int = {
+        if (is == Nil) 0
+        else is.head + addInts(is.tail)
+      }
+      ```
+
+      Each implementation has a zeroy-thing (of type T) and a combiney-thing (T -> T -> T)
+
+      lets rewrite our function to show that
+
+      ```scala
+      def adder[T](ts: List[T], zero: T, combine: (T,T) => T): T = {
+        if (ts == Nil) zero
+        else combine(ts.head, adder(ts.tail))
+      }
+      ```
+
+      Lets wrap up `zero` and `combine` together
+
+      ```tut
+      trait Monoid[T] {
+        def zero: T
+        def combine(a: T, b: T): T
+      }
+```
+
+```scala
+      def adder[T](ts: List[T], M: Monoid[T]): T = {
+        if (ts == Nil) M.zero
+        else M.combine(ts.head, adder(ts.tail))
+      }
+      ```
+
+      Cool. That means we just have to implement this thing with the silly name for each type it's appropriate for
+
+      ```scala
+      val intAddMonoid = new Monoid[Int] {
+        def zero: Int = 0
+        def combine(a: Int, b: Int): Int = a + b
+      }
+
+      def listMonoid[T] = new Monoid[List[T]] {
+        def zero: List[T] = List[T]()
+        def combine(a: List[T], b: List[T]): List[T] = a ++ b
+      }
+      ```
+
+      then
+
+      ```scala
+      adder(List(1,2,3,4), intAddMonoid)
+      ```
+
+      Note: I won't cover why here, but in scala you would just write `adder(List(1,2,3,4))` and the compiler will implicitly find the appropriate monoid for you
+
+      This approach is called ad-hoc polymorphism (or type classing) and has several advantages over subclass-polymorphism
+      - it allows us to create functions (eg adder) for types (eg List) without modifying the type itself
+      - it has grounding in mathematics and provably more powerful than subclassing
+      - you aren't forced to implement `adder` for everything which could be a List
+
+      It also has disadvantages over subclassing, the big one is you need a true type system to implement it property (this example would work in java, but many many others wouldn't)
+
+      # So what?
+
+      Great.... but I thought this was a talk about property based testing?
+
+      Let's look at this Monoid thing again
+
+      ```tut
+      trait Monoid[T] {
+        def zero: T
+        def combine(a: T, b: T): T
+      }
+      ```
+
+      There are more rules here than we can express in the trait, specifically
+
+      ```scala
+      combine(combine(a,b), c) == combine(a,combine(b, c)) // it's associative
+      combine(zero, a) == combine(a, zero) == a // zero is actually a left/right identity
+      ```
+
+      These are typically called Laws, but there is no way to express these in the type signature (active area of research, Alonzo Church's paper in 1936 suggests you can, but we don't know how to do it)
+
+      # So what else can we do?
+
+      Write tests!
+
+      *Loic jumps for joy*
+
+      Note: This sound great, but is actually a sad moment
+
+      # What would that look like?
+
+      We need these laws to hold for all elements - we don't want selection bias to come into our tests - pick values at random
+
+
+
+    </textarea>
+    <script src="remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
