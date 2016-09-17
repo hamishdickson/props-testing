@@ -18,38 +18,86 @@
   <body>
     <textarea id="source">
 
-      # Adder
+class: center, middle
 
-      imagine we had written a function to add a list of Ints together, it would look a bit like this
+# Fun & Games with Type Classes & Property Based Testing!
+Hamish Dickson
 
-      ```tut
-      def addInts(is: List[Int]): Int = {
-        if (is == Nil) 0
-        else is.head + addInts(is.tail)
-      }
-      ```
+???
 
-      what if later we did the same for multiplying Ints?
+- Thanks for coming
 
-      ```tut
-      def multiplyInts(is: List[Int]): Int = {
-        if (is == Nil) 1
-        else is.head * addInts(is.tail)
-      }
-      ```
+---
 
-      and then combining a List of Lists?
+# Goals
 
-      ```tut
-      def addList[T](ls: List[List[T]]): List[T] = {
-        if (ls == Nil) List()
-        else ls.head ++ addList(ls.tail)
-      }
-      ```
+1. Gain some intuition about how you can use types to reason about programs
+2. Understand what types aren't good at describing and understand how property based testing can help
+3. Understand how property based testing fits in with TDD/standard unit tests
 
-      These bits of code all look very similar. Can we somehow abstract this idea out?
+???
 
-      # 1st attempt - subclass polymorphism
+- So I'm going quickly cover two quite broad ideas in this talk
+- I've advertied this as a talk about property based testing
+- but I'm aware most of us here don't use typed languages, so I'd like to cover how we use types in langauges like Haskell/Idris/Scala to help design programs
+- I'll probably also (grumpily) talk about java here
+
+- Then I'm going to talk about limitations of the types we use and hopefully demostrate that we need more information
+-
+
+---
+
+# Adder
+
+imagine we had written a function to add a list of Ints together, it would look a bit like this
+
+```tut
+def addInts(is: List[Int]): Int = {
+  if (is == Nil) 0
+  else is.head + addInts(is.tail)
+}
+```
+
+???
+
+
+
+---
+
+# Adder
+
+what if later we did the same for multiplying Ints?
+
+```tut
+def addInts(is: List[Int]): Int = {
+  if (is == Nil) 0
+  else is.head + addInts(is.tail)
+}
+
+def multiplyInts(is: List[Int]): Int = {
+  if (is == Nil) 1
+  else is.head * addInts(is.tail)
+}
+```
+
+---
+
+# Adder
+
+and then combining a List of Lists?
+
+```tut
+def addList[T](ls: List[List[T]]): List[T] = {
+  if (ls == Nil) List()
+  else ls.head ++ addList(ls.tail)
+}
+```
+
+These bits of code all look very similar. Can we somehow abstract this idea out?
+
+---
+
+# 1st attempt - subclass polymorphism
 
       Well, we could try and use polymorphism to do this, but where would it live?
 
