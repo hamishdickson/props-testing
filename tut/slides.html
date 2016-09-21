@@ -25,7 +25,11 @@ Hamish Dickson
 
 ???
 
-- Thanks for coming
+- First off, thanks for coming
+- Just so I have an idea, who here knows what a type class is?
+- and property based testing?
+
+- So these ideas aren't strictly related, but you often see them together and I think it would be interesting to talk about them both today
 
 ---
 
@@ -37,21 +41,19 @@ Hamish Dickson
 
 ???
 
-- So I'm going quickly cover two quite broad ideas in this talk
-- I've advertied this as a talk about property based testing
-- but I'm aware most of us here don't use typed languages, so I'd like to cover how we use types in langauges like Haskell/Idris/Scala to help design programs
-- I'll probably also (grumpily) talk about java here
+- So the aim of today is to quickly cover these two ideas
 
-- Then I'm going to talk about limitations of the types we use and hopefully demostrate that we need more information
--
+- I'm aware most of use here don't use typed languages (in fact - java doesn't have a true type system)
+- so I want to cover how types are used in Idris/Haskell/Scala/Purescript
+- Then I'm going to talk about how property based testing fits in with that
 
 ---
 
-# Adder
+# Adderer
 
-imagine we had written a function to add a list of Ints together, it would look a bit like this
+Imagine we had written a function to add a list of Ints together, it would look a bit like this
 
-```tut
+```tut:silent
 def addInts(is: List[Int]): Int = {
   if (is == Nil) 0
   else is.head + addInts(is.tail)
@@ -60,68 +62,158 @@ def addInts(is: List[Int]): Int = {
 
 ???
 
-
+- OK, lets dive right into an example
+- Imagine we need to write some function to sum a list of Ints
+- this is what it would look like in Scala...
+- well kind of - in reality you'd use pattern matching rather than an 'if' statement here, but I don't want to cover that
 
 ---
 
-# Adder
+# Adderer
 
-what if later we did the same for multiplying Ints?
+Imagine we had written a function to add a list of Ints together, it would look a bit like this
 
-```tut
+```tut:silent
 def addInts(is: List[Int]): Int = {
   if (is == Nil) 0
   else is.head + addInts(is.tail)
 }
+```
 
-def multiplyInts(is: List[Int]): Int = {
-  if (is == Nil) 1
-  else is.head * addInts(is.tail)
+What if we wanted combine some list of lists into another list
+
+```tut:silent
+def flattenList[T](ls: List[List[T]]): List[T] = {
+  if (ls == Nil) List()
+  else ls.head ++ flattenList(ls.tail)
 }
 ```
+
+???
+
+- this is pretty much flatten
+- ++ is append in scala
 
 ---
 
-# Adder
+# Adderer
 
-and then combining a List of Lists?
+Imagine we had written a function to add a list of Ints together, it would look a bit like this
 
-```tut
-def addList[T](ls: List[List[T]]): List[T] = {
-  if (ls == Nil) List()
-  else ls.head ++ addList(ls.tail)
+```tut:silent
+def addInts(is: List[Int]): Int = {
+  if (is == Nil) 0
+  else is.head + addInts(is.tail)
 }
 ```
 
-These bits of code all look very similar. Can we somehow abstract this idea out?
+What if we wanted combine some list of lists into another list
+
+```tut:silent
+def flattenList[T](ls: List[List[T]]): List[T] = {
+  if (ls == Nil) List()
+  else ls.head ++ flattenList(ls.tail)
+}
+```
+
+These are both just adding things together - can we abstract this out?
 
 ---
 
 # 1st attempt - subclass polymorphism
 
-      Well, we could try and use polymorphism to do this, but where would it live?
+Well, the standard way to abstract ideas out liks this in java is to use what's called subclass-polymorphism
 
-      We could try adding this to List
+```tut:silent
+trait List[A] {
+  def adder(ls: List[A]): A
 
-      ```tut
-      trait List[A] {
-        //...
-        def adder(ls: List[A]): A
-        //...
-      }
-      ```
+  //...
+}
+```
 
-      but then what? How do we implement this? Each type has a different implemention - does that mean we have to implement `adder` on Int?
 
-      That's a crap approach
 
-      - Int shouldn't know about List
-      - Int has 2 different implementations of adder
-      - What if we have a list where `adder` doesn't makes sense? Our approach forces us to implement it anyway
+???
 
-      .. Not to mention, we can't modify List like this anyway
+- one way to approach this is to add some function `adder` to the List trait (scala doesn't have interfaces)
 
-      Lets try something else
+---
+
+# 1st attempt - subclass polymorphism
+
+Well, the standard way to abstract ideas out liks this in java is to use what's called subclass-polymorphism
+
+```tut:silent
+trait List[A] {
+  def adder(ls: List[A]): A
+
+  //...
+}
+```
+
+this approach is terrible
+
+
+---
+
+# 1st attempt - subclass polymorphism
+
+Well, the standard way to abstract ideas out liks this in java is to use what's called subclass-polymorphism
+
+```tut:silent
+trait List[A] {
+  def adder(ls: List[A]): A
+
+  //...
+}
+```
+
+this approach is terrible
+
+- it's hard to imagine where implementations of this would live - it doesn't even make sense on implementations of List
+- does that mean Int has to know about List? That's insane
+- adder doesn't make sense for some A's - how would you implement adder for a list of Dogs?
+
+---
+
+# 1st attempt - subclass polymorphism
+
+These are typical problems with subclass polymorphism in general
+
+---
+
+# 1st attempt - subclass polymorphism
+
+These are typical problems with subclass polymorphism in general
+
+But subclass polymorphism gives us the GoF book!
+
+---
+
+# 1st attempt - subclass polymorphism
+
+These are typical problems with subclass polymorphism in general
+
+But subclass polymorphism gives us the GoF book!
+
+???
+
+
+---
+
+# 1st attempt - subclass polymorphism
+
+"Interpreter is the only useful pattern in the GoF book."
+
+> Runar Bjarnason
+
+???
+
+- So, this way of doing polymorphism isn't really used in functional programming instead we use
+
+---
+
 
       # Type classes
 
